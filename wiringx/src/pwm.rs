@@ -20,8 +20,15 @@ impl PwmPin {
         if handles.lock().contains(&number) {
             return Err(WiringXError::PinUsed);
         }
+        
+        handles.lock().insert(number);
 
-        let result = unsafe { wiringXPWMEnable(number, 1) };
+        Ok(Self { number, handles })
+    }
+
+    /// Enable the PWM
+    pub fn enable_pwm(&self) -> Result<(), WiringXError> {
+        let result = unsafe { wiringXPWMEnable(self.number, 1) };
 
         if result < 0 {
             return Err(WiringXError::Io(io::Error::new(
@@ -29,12 +36,9 @@ impl PwmPin {
                 "PWM capabilities are not supported on this platform.",
             )));
         }
-
-        handles.lock().insert(number);
-
-        Ok(Self { number, handles })
+        Ok(())
     }
-
+    
     /// Sets the period of time a PWM cycle takes.
     pub fn set_pwm_period(&self, period: Duration) -> Result<(), WiringXError> {
         let result = unsafe { wiringXPWMSetPeriod(self.number, period.as_nanos() as i64) };
